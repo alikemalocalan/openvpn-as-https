@@ -11,6 +11,7 @@ if readlink /proc/$$/exe | grep -q "dash"; then
 fi
 
 # Discard stdin. Needed when running from an one-liner which includes a newline
+# shellcheck disable=SC2162
 read -N 999999 -t 0.001
 
 # Detect OpenVZ 6
@@ -50,6 +51,7 @@ fi
 
 # Detect environments where $PATH does not include the sbin directories
 if ! grep -q sbin <<<"$PATH"; then
+  # shellcheck disable=SC2016
   echo '$PATH does not include sbin. Try using "su -" instead of "su".'
   exit
 fi
@@ -96,9 +98,11 @@ else
   echo
   echo "Which IPv4 address should be used?"
   ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
+  # shellcheck disable=SC2162
   read -p "IPv4 address [1]: " ip_number
   until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
     echo "$ip_number: invalid selection."
+    # shellcheck disable=SC2162
     read -p "IPv4 address [1]: " ip_number
   done
   [[ -z "$ip_number" ]] && ip_number="1"
@@ -112,9 +116,10 @@ if echo "$ip" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.
   get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<<"$(wget -T 10 -t 1 -4qO- "http://ip1.dynupdate.no-ip.com/" || curl -m 10 -4Ls "http://ip1.dynupdate.no-ip.com/")")
   echo "Public IPv4 address / hostname [$get_public_ip]: "
   public_ip="127.0.0.1"
-  # If the checkip service is unavailable and user didn't provide input, ask again
+  # If the checkup service is unavailable and user didn't provide input, ask again
   until [[ -n "$get_public_ip" || -n "$public_ip" ]]; do
     echo "Invalid input."
+    # shellcheck disable=SC2162
     read -p "Public IPv4 address / hostname: " public_ip
   done
   [[ -z "$public_ip" ]] && public_ip="$get_public_ip"
@@ -129,9 +134,11 @@ if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
   echo
   echo "Which IPv6 address should be used?"
   ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
+  # shellcheck disable=SC2162
   read -p "IPv6 address [1]: " ip6_number
   until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
     echo "$ip6_number: invalid selection."
+    # shellcheck disable=SC2162
     read -p "IPv6 address [1]: " ip6_number
   done
   [[ -z "$ip6_number" ]] && ip6_number="1"
@@ -156,6 +163,7 @@ dns="3"
 echo "Enter a name for the first client:"
 unsanitized_client="firstuser"
 # Allow a limited set of characters to avoid conflicts
+# shellcheck disable=SC2001
 client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<<"$unsanitized_client")
 [[ -z "$client" ]] && client="client"
 echo
@@ -182,6 +190,7 @@ easy_rsa_url='https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.7/EasyR
 mkdir -p /etc/openvpn/server/easy-rsa/
 { wget -qO- "$easy_rsa_url" 2>/dev/null || curl -sL "$easy_rsa_url"; } | tar xz -C /etc/openvpn/server/easy-rsa/ --strip-components 1
 chown -R root:root /etc/openvpn/server/easy-rsa/
+# shellcheck disable=SC2164
 cd /etc/openvpn/server/easy-rsa/
 # Create the PKI, set up the CA and the server and client certificates
 ./easyrsa init-pki
@@ -238,6 +247,7 @@ case "$dns" in
     resolv_conf="/etc/resolv.conf"
   fi
   # Obtain the resolvers from resolv.conf and use them for OpenVPN
+  # shellcheck disable=SC2162
   grep -v '^#\|^;' "$resolv_conf" | grep '^nameserver' | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | while read line; do
     echo "push \"dhcp-option DNS $line\"" >>/etc/openvpn/server/server.conf
   done
